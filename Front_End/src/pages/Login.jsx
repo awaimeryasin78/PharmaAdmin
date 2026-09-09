@@ -6,7 +6,7 @@ import { Pill, Eye, EyeOff } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
 import pillBackground from '../assets/pill_background_v2.svg'
-
+import logo from '../assets/pharmaadmin-logo.svg'
 const Login = () => {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
