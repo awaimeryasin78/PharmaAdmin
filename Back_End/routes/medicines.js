@@ -43,7 +43,14 @@ router.get('/:id', auth, async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message })
     }
 })
-
+router.post('/bulk', auth, async (req, res) => {
+    try {
+        const medicines = await Medicine.insertMany(req.body)
+        res.status(201).json(medicines)
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message })
+    }
+})
 router.post('/', auth, async (req, res) => {
     try {
         const medicine = new Medicine(req.body)

@@ -13,7 +13,7 @@ const medicineSchema = new mongoose.Schema({
     category: {
         type: String,
         required: true,
-        enum: ['Antibiotic', 'Analgesic', 'Vitamin', 'Antacid', 'Antihistamine', 'Other']
+        enum: ['Antibiotic', 'Analgesic', 'Vitamin', 'Antacid', 'Antihistamine', 'Anti-inflammatory', 'Proton Pump Inhibitor', 'Antidiabetic', 'Other']
     },
     price: {
         type: Number,

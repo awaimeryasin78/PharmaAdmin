@@ -3,6 +3,7 @@ const router = express.Router()
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const User = require('../models/User')
+const auth = require('../middleware/auth')
 
 router.post('/register', async (req, res) => {
     try {
@@ -57,6 +58,30 @@ router.post('/login', async (req, res) => {
         )
 
         res.json({ token, user: { id: user._id, name: user.name, email: user.email } })
+
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message })
+    }
+})
+
+router.put('/change-password', auth, async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body
+
+        const user = await User.findById(req.user.userId)
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' })
+        }
+
+        const isMatch = await bcrypt.compare(currentPassword, user.password)
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Current password is incorrect' })
+        }
+
+        user.password = await bcrypt.hash(newPassword, 10)
+        await user.save()
+
+        res.json({ message: 'Password updated successfully' })
 
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message })
