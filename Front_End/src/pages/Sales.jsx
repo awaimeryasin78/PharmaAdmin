@@ -4,8 +4,10 @@ import API from '../api/axios'
 import { Search, Plus, Minus, Trash2, ShoppingCart } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 const Sales = () => {
+    const isMobile = useIsMobile()
     const [medicines, setMedicines] = useState([])
     const [search, setSearch] = useState('')
     const [cart, setCart] = useState([])
@@ -126,7 +128,7 @@ const Sales = () => {
 
     return (
         <Layout title="Sales / Billing">
-            <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '20px', alignItems: 'start' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.6fr 1fr', gap: '20px', alignItems: 'start' }}>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                     <div style={cardStyle}>
@@ -227,7 +229,7 @@ const Sales = () => {
                     )}
                 </div>
 
-                <div style={{ ...cardStyle, position: 'sticky', top: '32px' }}>
+                <div style={{ ...cardStyle, position: isMobile ? 'static' : 'sticky', top: '32px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
                         <ShoppingCart size={18} color='var(--text-primary)' />
                         <h3 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)' }}>Live Cart</h3>

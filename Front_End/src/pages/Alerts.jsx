@@ -3,8 +3,10 @@ import Layout from '../components/Layout'
 import API from '../api/axios'
 import { AlertTriangle, Clock, RefreshCw } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 const Alerts = () => {
+    const isMobile = useIsMobile()
     const [lowStock, setLowStock] = useState([])
     const [expiringSoon, setExpiringSoon] = useState([])
     const [loading, setLoading] = useState(true)
@@ -102,7 +104,7 @@ const Alerts = () => {
                 }
             `}</style>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px' }}>
                 <AlertSection
                     title="Low Stock"
                     icon={<AlertTriangle size={18} color='#F59E0B' />}

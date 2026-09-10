@@ -6,8 +6,10 @@ import API from '../api/axios'
 import { User, Mail, Shield, Sun, Moon, Pill, Lock, Bell, AlertTriangle, Clock } from 'lucide-react'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 const Settings = () => {
+    const isMobile = useIsMobile()
     const { user } = useAuth()
     const { theme, toggleTheme } = useTheme()
 
@@ -105,7 +107,7 @@ const Settings = () => {
 
     return (
         <Layout title="Settings">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', alignItems: 'start' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px', alignItems: 'start' }}>
 
                 {/* LEFT COLUMN */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>

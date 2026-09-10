@@ -7,10 +7,12 @@ import {
     LineElement, Title, Tooltip, Legend, ArcElement, Filler
 } from 'chart.js'
 import { motion } from 'framer-motion'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement, Filler)
 
 const Reports = () => {
+    const isMobile = useIsMobile()
     const [medicines, setMedicines] = useState([])
     const [sales, setSales] = useState([])
     const [loading, setLoading] = useState(true)
@@ -99,7 +101,7 @@ const Reports = () => {
         maintainAspectRatio: false,
         plugins: {
             legend: {
-                position: 'right',
+                position: isMobile ? 'bottom' : 'right',
                 labels: { color: '#94A3B8', font: { size: 11 }, boxWidth: 12, padding: 12 }
             }
         }
@@ -144,7 +146,7 @@ const Reports = () => {
                 </motion.div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '20px', marginBottom: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.5fr 1fr', gap: '20px', marginBottom: '20px' }}>
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={cardStyle}>
                     <h3 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '16px' }}>
                         Weekly Sales Trend
