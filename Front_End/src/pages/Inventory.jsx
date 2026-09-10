@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import Layout from '../components/Layout'
 import API from '../api/axios'
 import { Search, Plus, Pencil, Trash2, X } from 'lucide-react'
@@ -13,9 +14,10 @@ const emptyForm = {
 }
 
 const Inventory = () => {
+    const [searchParams] = useSearchParams()
     const [medicines, setMedicines] = useState([])
     const [loading, setLoading] = useState(true)
-    const [search, setSearch] = useState('')
+    const [search, setSearch] = useState(searchParams.get('search') || '')
     const [categoryFilter, setCategoryFilter] = useState('All')
     const [showModal, setShowModal] = useState(false)
     const [editingId, setEditingId] = useState(null)
