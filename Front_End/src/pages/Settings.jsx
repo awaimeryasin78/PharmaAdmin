@@ -1,59 +1,121 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Layout from '../components/Layout'
-import { useAuth } from '../context/AuthContext'
-import { useTheme } from '../context/ThemeContext'
 import API from '../api/axios'
-import { User, Mail, Shield, Sun, Moon, Pill, Lock, Bell, AlertTriangle, Clock } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { Search, Plus, Minus, Trash2, ShoppingCart } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { useIsMobile } from '../hooks/useIsMobile'
 
-const Settings = () => {
+const Sales = () => {
     const isMobile = useIsMobile()
-    const { user } = useAuth()
-    const { theme, toggleTheme } = useTheme()
+    const [medicines, setMedicines] = useState([])
+    const [search, setSearch] = useState('')
+    const [cart, setCart] = useState([])
+    const [discount, setDiscount] = useState(0)
+    const [loading, setLoading] = useState(true)
+    const [processing, setProcessing] = useState(false)
+    const [salesHistory, setSalesHistory] = useState([])
 
-    const [currentPassword, setCurrentPassword] = useState('')
-    const [newPassword, setNewPassword] = useState('')
-    const [confirmPassword, setConfirmPassword] = useState('')
-    const [saving, setSaving] = useState(false)
-
-    const [notifLowStock, setNotifLowStock] = useState(() => localStorage.getItem('notifLowStock') !== 'false')
-    const [notifExpiry, setNotifExpiry] = useState(() => localStorage.getItem('notifExpiry') !== 'false')
-
-    const toggleNotif = (type) => {
-        if (type === 'lowStock') {
-            const newVal = !notifLowStock
-            setNotifLowStock(newVal)
-            localStorage.setItem('notifLowStock', newVal)
-        } else {
-            const newVal = !notifExpiry
-            setNotifExpiry(newVal)
-            localStorage.setItem('notifExpiry', newVal)
+    const fetchSalesHistory = async () => {
+        try {
+            const res = await API.get('/api/sales')
+            setSalesHistory(res.data.reverse())
+        } catch (error) {
+            console.log(error)
         }
     }
 
-    const handleChangePassword = async (e) => {
-        e.preventDefault()
-        if (newPassword !== confirmPassword) {
-            toast.error('New passwords do not match')
+    useEffect(() => {
+        const fetchMedicines = async () => {
+            try {
+                const res = await API.get('/api/medicines')
+                setMedicines(res.data)
+            } catch (error) {
+                toast.error('Failed to load medicines')
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchMedicines()
+        fetchSalesHistory()
+    }, [])
+
+    const filteredMedicines = medicines.filter(med =>
+        med.name.toLowerCase().includes(search.toLowerCase()) && med.quantity > 0
+    )
+
+    const addToCart = (medicine) => {
+        const existing = cart.find(item => item.medicine === medicine._id)
+        if (existing) {
+            if (existing.quantity >= medicine.quantity) {
+                toast.error('Not enough stock available')
+                return
+            }
+            setCart(cart.map(item =>
+                item.medicine === medicine._id ? { ...item, quantity: item.quantity + 1 } : item
+            ))
+        } else {
+            setCart([...cart, {
+                medicine: medicine._id,
+                name: medicine.name,
+                price: medicine.price,
+                quantity: 1,
+                maxQuantity: medicine.quantity
+            }])
+        }
+    }
+
+    const updateQuantity = (medicineId, delta) => {
+        setCart(cart.map(item => {
+            if (item.medicine === medicineId) {
+                const newQty = item.quantity + delta
+                if (newQty < 1) return item
+                if (newQty > item.maxQuantity) {
+                    toast.error('Not enough stock available')
+                    return item
+                }
+                return { ...item, quantity: newQty }
+            }
+            return item
+        }))
+    }
+
+    const removeFromCart = (medicineId) => {
+        setCart(cart.filter(item => item.medicine !== medicineId))
+    }
+
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+    const discountAmount = (subtotal * discount) / 100
+    const total = subtotal - discountAmount
+
+    const handleCompleteSale = async () => {
+        if (cart.length === 0) {
+            toast.error('Cart is empty')
             return
         }
-        if (newPassword.length < 6) {
-            toast.error('New password must be at least 6 characters')
-            return
-        }
-        setSaving(true)
+        setProcessing(true)
         try {
-            await API.put('/api/auth/change-password', { currentPassword, newPassword })
-            toast.success('Password updated successfully')
-            setCurrentPassword('')
-            setNewPassword('')
-            setConfirmPassword('')
+            await API.post('/api/sales', {
+                medicines: cart.map(item => ({
+                    medicine: item.medicine,
+                    name: item.name,
+                    quantity: item.quantity,
+                    price: item.price
+                })),
+                totalAmount: subtotal,
+                discount: discountAmount,
+                finalAmount: total
+            })
+            toast.success('Sale completed successfully!')
+            setCart([])
+            setDiscount(0)
+            const res = await API.get('/api/medicines')
+            setMedicines(res.data)
+            fetchSalesHistory()
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to update password')
+            toast.error(error.response?.data?.message || 'Failed to complete sale')
         } finally {
-            setSaving(false)
+            setProcessing(false)
         }
     }
 
@@ -61,222 +123,206 @@ const Settings = () => {
         background: 'var(--bg-card)',
         border: '0.5px solid var(--border-card)',
         borderRadius: '16px',
-        padding: '24px'
+        padding: '20px'
     }
-
-    const rowStyle = {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '14px 0',
-        borderBottom: '0.5px solid var(--border-card)'
-    }
-
-    const inputStyle = {
-        width: '100%',
-        height: '42px',
-        background: 'var(--bg-input)',
-        border: '0.5px solid var(--border-card)',
-        borderRadius: '8px',
-        padding: '0 14px',
-        color: 'var(--text-primary)',
-        fontSize: '13px',
-        outline: 'none',
-        boxSizing: 'border-box'
-    }
-
-    const Toggle = ({ checked, onChange }) => (
-        <button
-            onClick={onChange}
-            style={{
-                width: '42px', height: '24px', borderRadius: '9999px',
-                background: checked ? 'var(--accent-primary)' : 'var(--border-card)',
-                border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 200ms'
-            }}
-        >
-            <motion.div
-                animate={{ x: checked ? 20 : 2 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                style={{
-                    width: '20px', height: '20px', borderRadius: '50%',
-                    background: '#fff', position: 'absolute', top: '2px'
-                }}
-            />
-        </button>
-    )
 
     return (
-        <Layout title="Settings">
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px', alignItems: 'start' }}>
+        <Layout title="Sales / Billing">
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.6fr 1fr', gap: '20px', alignItems: 'start' }}>
 
-                {/* LEFT COLUMN */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={cardStyle}>
-                        <h3 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '18px' }}>
-                            Account Information
-                        </h3>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '20px' }}>
-                            <div style={{
-                                width: '56px', height: '56px', borderRadius: '50%',
-                                background: 'var(--accent-primary)', display: 'flex',
-                                alignItems: 'center', justifyContent: 'center',
-                                fontSize: '20px', fontWeight: '700', color: '#fff'
-                            }}>
-                                {user?.name?.charAt(0).toUpperCase() || 'A'}
-                            </div>
-                            <div>
-                                <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                                    {user?.name || 'Admin'}
-                                </div>
-                                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Pharmacy Administrator</div>
-                            </div>
-                        </div>
-
-                        <div style={rowStyle}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <User size={16} color='var(--text-muted)' />
-                                <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Full Name</span>
-                            </div>
-                            <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{user?.name || '—'}</span>
-                        </div>
-
-                        <div style={rowStyle}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <Mail size={16} color='var(--text-muted)' />
-                                <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Email Address</span>
-                            </div>
-                            <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{user?.email || '—'}</span>
-                        </div>
-
-                        <div style={{ ...rowStyle, borderBottom: 'none' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <Shield size={16} color='var(--text-muted)' />
-                                <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Role</span>
-                            </div>
-                            <span style={{
-                                fontSize: '11px', fontWeight: '500', color: '#0EA5E9',
-                                background: 'rgba(14,165,233,0.12)', padding: '3px 10px', borderRadius: '9999px'
-                            }}>Administrator</span>
-                        </div>
-                    </motion.div>
-
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} style={cardStyle}>
-                        <h3 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '18px' }}>
-                            Appearance
-                        </h3>
-
-                        <div style={{ ...rowStyle, borderBottom: 'none' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                {theme === 'dark' ? <Moon size={16} color='var(--text-muted)' /> : <Sun size={16} color='var(--text-muted)' />}
-                                <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Theme</span>
-                            </div>
-                            <button
-                                onClick={toggleTheme}
+                    <div style={cardStyle}>
+                        <div style={{
+                            display: 'flex', alignItems: 'center', gap: '8px',
+                            background: 'var(--bg-input)', border: '0.5px solid var(--border-card)',
+                            borderRadius: '8px', padding: '0 14px', height: '44px', marginBottom: '16px'
+                        }}>
+                            <Search size={16} color='var(--text-muted)' />
+                            <input
+                                type="text"
+                                placeholder="Search medicines to sell..."
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
                                 style={{
-                                    display: 'flex', alignItems: 'center', gap: '8px',
-                                    padding: '8px 16px', borderRadius: '8px',
-                                    background: 'var(--bg-input)', border: '0.5px solid var(--border-card)',
-                                    color: 'var(--text-primary)', fontSize: '13px', cursor: 'pointer'
+                                    background: 'transparent', border: 'none', outline: 'none',
+                                    color: 'var(--text-primary)', fontSize: '13px', width: '100%'
                                 }}
-                            >
-                                {theme === 'dark' ? 'Dark Mode' : 'Light Mode'} — Switch
-                            </button>
+                            />
                         </div>
-                    </motion.div>
 
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} style={cardStyle}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-                            <Pill size={18} color='var(--accent-primary)' />
-                            <h3 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)' }}>About PharmaAdmin</h3>
+                        {loading ? (
+                            <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Loading medicines...</p>
+                        ) : filteredMedicines.length === 0 ? (
+                            <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>No medicines found.</p>
+                        ) : (
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(180px, 1fr))',
+                                gap: isMobile ? '8px' : '12px'
+                            }}>
+                                {filteredMedicines.map(med => (
+                                    <motion.div
+                                        key={med._id}
+                                        whileHover={{ y: -3 }}
+                                        style={{
+                                            background: 'var(--bg-input)', border: '0.5px solid var(--border-card)',
+                                            borderRadius: '10px', padding: isMobile ? '10px' : '14px', cursor: 'pointer'
+                                        }}
+                                        onClick={() => addToCart(med)}
+                                    >
+                                        <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                                            {med.name}
+                                        </div>
+                                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '10px' }}>
+                                            Stock: {med.quantity}
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ fontSize: '14px', fontWeight: '700', color: '#0EA5E9' }}>PKR {med.price}</span>
+                                            <span style={{
+                                                width: '28px', height: '28px', borderRadius: '6px',
+                                                background: 'rgba(14,165,233,0.15)', display: 'flex',
+                                                alignItems: 'center', justifyContent: 'center'
+                                            }}>
+                                                <Plus size={14} color='#0EA5E9' />
+                                            </span>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {salesHistory.length > 0 && (
+                        <div style={cardStyle}>
+                            <h3 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '14px' }}>
+                                Recent Sales
+                            </h3>
+                            <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '500px' }}>
+                                    <thead>
+                                        <tr style={{ borderBottom: '0.5px solid var(--border-card)' }}>
+                                            {['Date', 'Items', 'Discount', 'Total'].map(h => (
+                                                <th key={h} style={{ textAlign: 'left', padding: '10px 8px', fontSize: '12px', color: 'var(--text-muted)', fontWeight: '500' }}>{h}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {salesHistory.slice(0, 10).map(sale => (
+                                            <tr key={sale._id} style={{ borderBottom: '0.5px solid var(--border-card)' }}>
+                                                <td style={{ padding: '10px 8px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                                                    {new Date(sale.createdAt).toLocaleString()}
+                                                </td>
+                                                <td style={{ padding: '10px 8px', fontSize: '13px', color: 'var(--text-primary)' }}>
+                                                    {sale.medicines.map(m => `${m.name} x${m.quantity}`).join(', ')}
+                                                </td>
+                                                <td style={{ padding: '10px 8px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                                                    PKR {sale.discount.toFixed(2)}
+                                                </td>
+                                                <td style={{ padding: '10px 8px', fontSize: '13px', color: '#22C55E', fontWeight: '600' }}>
+                                                    PKR {sale.finalAmount.toFixed(2)}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.7' }}>
-                            PharmaAdmin is a full-stack pharmacy management system built with the MERN stack
-                            (MongoDB, Express, React, Node.js). Manage inventory, process sales, track alerts,
-                            and view analytics — all in one place.
-                        </p>
-                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '12px' }}>
-                            Version 1.0.0
-                        </div>
-                    </motion.div>
+                    )}
                 </div>
 
-                {/* RIGHT COLUMN */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} style={cardStyle}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
-                            <Lock size={18} color='var(--accent-primary)' />
-                            <h3 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)' }}>Change Password</h3>
-                        </div>
+                <div style={{ ...cardStyle, position: isMobile ? 'static' : 'sticky', top: '32px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                        <ShoppingCart size={18} color='var(--text-primary)' />
+                        <h3 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)' }}>Live Cart</h3>
+                    </div>
 
-                        <form onSubmit={handleChangePassword}>
-                            <div style={{ marginBottom: '12px' }}>
-                                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Current Password</label>
-                                <input
-                                    type="password" required value={currentPassword}
-                                    onChange={e => setCurrentPassword(e.target.value)}
-                                    style={inputStyle}
-                                />
-                            </div>
-                            <div style={{ marginBottom: '12px' }}>
-                                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>New Password</label>
-                                <input
-                                    type="password" required value={newPassword}
-                                    onChange={e => setNewPassword(e.target.value)}
-                                    style={inputStyle}
-                                />
-                            </div>
-                            <div style={{ marginBottom: '18px' }}>
-                                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Confirm New Password</label>
-                                <input
-                                    type="password" required value={confirmPassword}
-                                    onChange={e => setConfirmPassword(e.target.value)}
-                                    style={inputStyle}
-                                />
-                            </div>
-                            <button
-                                type="submit" disabled={saving}
+                    {cart.length === 0 ? (
+                        <p style={{ color: 'var(--text-muted)', fontSize: '13px', padding: '20px 0', textAlign: 'center' }}>
+                            Cart is empty. Click a medicine to add it.
+                        </p>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px', maxHeight: '320px', overflowY: 'auto' }}>
+                            <AnimatePresence>
+                                {cart.map(item => (
+                                    <motion.div
+                                        key={item.medicine}
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: 20, height: 0 }}
+                                        style={{
+                                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                            padding: '10px', background: 'var(--bg-input)', borderRadius: '8px'
+                                        }}
+                                    >
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                {item.name}
+                                            </div>
+                                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>PKR {item.price} each</div>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <button onClick={() => updateQuantity(item.medicine, -1)} style={{
+                                                width: '22px', height: '22px', border: 'none', borderRadius: '4px',
+                                                background: 'var(--border-card)', color: 'var(--text-primary)', cursor: 'pointer',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                            }}><Minus size={12} /></button>
+                                            <span style={{ fontSize: '12px', color: 'var(--text-primary)', width: '18px', textAlign: 'center' }}>{item.quantity}</span>
+                                            <button onClick={() => updateQuantity(item.medicine, 1)} style={{
+                                                width: '22px', height: '22px', border: 'none', borderRadius: '4px',
+                                                background: 'var(--border-card)', color: 'var(--text-primary)', cursor: 'pointer',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                            }}><Plus size={12} /></button>
+                                            <button onClick={() => removeFromCart(item.medicine)} style={{
+                                                background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', marginLeft: '4px'
+                                            }}><Trash2 size={14} /></button>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
+                        </div>
+                    )}
+
+                    <div style={{ borderTop: '0.5px solid var(--border-card)', paddingTop: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                            <span>Subtotal</span><span>PKR {subtotal.toFixed(2)}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                            <span>Discount (%)</span>
+                            <input
+                                type="number" min="0" max="100" value={discount}
+                                onChange={e => setDiscount(Math.min(100, Math.max(0, Number(e.target.value))))}
                                 style={{
-                                    width: '100%', height: '42px', borderRadius: '8px',
-                                    background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
-                                    border: 'none', color: '#fff', fontSize: '13px', fontWeight: '600',
-                                    cursor: saving ? 'not-allowed' : 'pointer',
-                                    boxShadow: '0 0 16px rgba(14,165,233,0.3)'
+                                    width: '60px', height: '28px', background: 'var(--bg-input)',
+                                    border: '0.5px solid var(--border-card)', borderRadius: '6px',
+                                    color: 'var(--text-primary)', textAlign: 'right', padding: '0 8px', fontSize: '12px'
                                 }}
-                            >
-                                {saving ? 'Updating...' : 'Update Password'}
-                            </button>
-                        </form>
-                    </motion.div>
-
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} style={cardStyle}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
-                            <Bell size={18} color='var(--accent-primary)' />
-                            <h3 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)' }}>Notification Preferences</h3>
+                            />
                         </div>
-
-                        <div style={rowStyle}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <AlertTriangle size={16} color='#F59E0B' />
-                                <div>
-                                    <div style={{ fontSize: '13px', color: 'var(--text-primary)' }}>Low Stock Alerts</div>
-                                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Notify when stock falls below 10</div>
-                                </div>
-                            </div>
-                            <Toggle checked={notifLowStock} onChange={() => toggleNotif('lowStock')} />
+                        <div style={{
+                            display: 'flex', justifyContent: 'space-between', fontSize: '16px',
+                            fontWeight: '700', color: 'var(--text-primary)', paddingTop: '8px',
+                            borderTop: '0.5px solid var(--border-card)'
+                        }}>
+                            <span>Total</span><span>PKR {total.toFixed(2)}</span>
                         </div>
+                    </div>
 
-                        <div style={{ ...rowStyle, borderBottom: 'none' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <Clock size={16} color='#EF4444' />
-                                <div>
-                                    <div style={{ fontSize: '13px', color: 'var(--text-primary)' }}>Expiry Alerts</div>
-                                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Notify for medicines expiring within 30 days</div>
-                                </div>
-                            </div>
-                            <Toggle checked={notifExpiry} onChange={() => toggleNotif('expiry')} />
-                        </div>
-                    </motion.div>
+                    <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={handleCompleteSale}
+                        disabled={processing || cart.length === 0}
+                        style={{
+                            width: '100%', height: '46px', marginTop: '16px',
+                            background: cart.length === 0 ? '#334155' : 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
+                            border: 'none', borderRadius: '8px', color: '#fff',
+                            fontSize: '14px', fontWeight: '600',
+                            cursor: cart.length === 0 ? 'not-allowed' : 'pointer',
+                            boxShadow: cart.length === 0 ? 'none' : '0 0 20px rgba(14,165,233,0.3)'
+                        }}
+                    >
+                        {processing ? 'Processing...' : 'Complete Sale'}
+                    </motion.button>
                 </div>
 
             </div>
@@ -284,4 +330,4 @@ const Settings = () => {
     )
 }
 
-export default Settings
+export default Sales

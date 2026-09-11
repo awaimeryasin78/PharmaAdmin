@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Sidebar from './Sidebar'
 import Topbar from './Topbar'
+import Footer from './Footer'
 import { useIsMobile } from '../hooks/useIsMobile'
 
 const Layout = ({ children, title }) => {
@@ -27,12 +28,22 @@ const Layout = ({ children, title }) => {
                 />
                 <main style={{
                     marginTop: '64px',
-                    padding: isMobile ? '16px' : '32px',
                     minHeight: 'calc(100vh - 64px)',
                     boxSizing: 'border-box',
-                    overflowX: 'hidden'
+                    overflowX: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column'
                 }}>
-                    {children}
+                    <div style={{
+                        flex: 1,
+                        padding: isMobile ? '16px' : '32px',
+                        paddingBottom: 0
+                    }}>
+                        {children}
+                    </div>
+                    <div style={{ padding: isMobile ? '0 16px 20px' : '0 90px 24px 32px' }}>
+                        <Footer isMobile={isMobile} />
+                    </div>
                 </main>
             </div>
         </div>

@@ -130,7 +130,7 @@ const Sales = () => {
         <Layout title="Sales / Billing">
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.6fr 1fr', gap: '20px', alignItems: 'start' }}>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0 }}>
                     <div style={cardStyle}>
                         <div style={{
                             display: 'flex', alignItems: 'center', gap: '8px',
@@ -156,8 +156,9 @@ const Sales = () => {
                             <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>No medicines found.</p>
                         ) : (
                             <div style={{
-                                display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-                                gap: '12px'
+                                display: 'grid',
+                                gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(180px, 1fr))',
+                                gap: isMobile ? '8px' : '12px'
                             }}>
                                 {filteredMedicines.map(med => (
                                     <motion.div
@@ -165,7 +166,7 @@ const Sales = () => {
                                         whileHover={{ y: -3 }}
                                         style={{
                                             background: 'var(--bg-input)', border: '0.5px solid var(--border-card)',
-                                            borderRadius: '10px', padding: '14px', cursor: 'pointer'
+                                            borderRadius: '10px', padding: isMobile ? '10px' : '14px', cursor: 'pointer'
                                         }}
                                         onClick={() => addToCart(med)}
                                     >

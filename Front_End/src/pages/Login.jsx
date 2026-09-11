@@ -6,7 +6,7 @@ import { Pill, Eye, EyeOff } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
 import pillBackground from '../assets/pill_background_v2.svg'
-import logo from '../assets/pharmaadmin-logo.svg'
+
 const Login = () => {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
@@ -70,8 +70,8 @@ const Login = () => {
                     width: '440px',
                     maxWidth: '90vw',
                     boxSizing: 'border-box',
-                    background: 'rgba(10,22,40,0.45)',
-                    border: '0.5px solid rgba(30,58,95,0.5)',
+                    background: 'rgba(10,22,40,0.72)',
+                    border: '0.5px solid rgba(30,58,95,0.8)',
                     borderRadius: '20px',
                     padding: '40px',
                     backdropFilter: 'blur(24px)',
@@ -92,7 +92,7 @@ const Login = () => {
                         gap: '10px',
                         marginBottom: '8px'
                     }}>
-                   <img src={logo} alt="PharmaAdmin" style={{ width: '32px', height: '32px' }} />
+                    <Pill size={28} color='#0EA5E9' />
                     <span style={{ fontSize: '20px', fontWeight: '700', color: '#0EA5E9' }}>
                         PharmaAdmin
                     </span>
@@ -137,7 +137,7 @@ const Login = () => {
                             onChange={e => setEmail(e.target.value)}
                             onFocus={() => setEmailFocused(true)}
                             onBlur={() => setEmailFocused(false)}
-                            placeholder="you@example.com"
+                            placeholder="admin@pharmacy.com"
                             required
                             style={inputStyle(emailFocused)}
                         />
@@ -232,6 +232,19 @@ const Login = () => {
                     Forgot password?
                 </motion.p>
             </motion.div>
+
+            <div style={{
+                position: 'absolute',
+                bottom: '20px',
+                left: 0,
+                right: 0,
+                textAlign: 'center',
+                fontSize: '11px',
+                color: '#334155',
+                zIndex: 10
+            }}>
+                © {new Date().getFullYear()} PharmaAdmin — Designed &amp; built by Awaimer Taha Yasin · awaimeryasin78@gmail.com
+            </div>
         </div>
     )
 }
